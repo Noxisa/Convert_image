@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Deisgn</title>
+</head>
+<style>
+		body {
+			font-family: Arial, sans-serif;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+			min-height: 100vh;
+			margin: 0;
+			background-color: paleturquoise;
+			padding: 20px;
+			flex-direction: column;
+		}
+
+		.container {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		h3 {
+			margin-bottom: 10px;
+			color: #333;
+		}
+
+		.image-picture {
+			opacity: 0.85;
+			height: 300px;
+			width: 300px;
+			position: relative;
+			overflow: hidden;
+			background: url('https://qph.cf2.quoracdn.net/main-qimg-f32f85d21d59a5540948c3bfbce52e68');
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: cover;
+			box-shadow: 0 8px 6px -6px black;
+			margin: 0 auto 10px auto;
+			border-radius: 10px;
+		}
+
+		.file-uploader {
+			opacity: 0;
+			height: 100%;
+			width: 100%;
+			cursor: pointer;
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
+
+		.upload-icon {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			opacity: 0;
+			transition: opacity 0.3s ease;
+			font-size: 48px;
+			color: #ccc;
+		}
+
+		.image-picture:hover .upload-icon {
+			opacity: 1;
+		}
+
+		.shape-buttons {
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+		}
+
+
+		button {
+			padding: 10px 20px;
+			background-color: darkgreen;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			font-size: 16px;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+		}
+
+		button:hover {
+			background-color: green;
+		}
+
+		#download-image{
+			margin-top: 20px;
+			background-color: green;
+			transition: background-color 0.3s ease;
+		}
+
+		#download-image: hover{
+			background-color: darkgreen;
+		}
+
+	
+	</style>
+<body>
+<div class="container">
+		<h3>Upload Your Image</h3>
+		<div class="image-picture" id="image-container">
+			<input class="file-uploader" type="file" onchange="upload()" accept="image/*">
+			<div class="upload-icon">+</div>
+		</div>
+		<div class="shape-buttons">
+			<button onclick="setShape('circle')">Circle</button>
+			<button onclick="setShape('triangle')">Triangle</button>
+			<button onclick="setShape('square')">Square</button>
+			<button onclick="setShape('hexagon')">Hexagon</button>
+		</div>
+	</div>
+ <button id="download-image" onclick="downloadImage()">Download</button>
+	</div>
+<script>
+	let currentImage = null;
+	const container = document.getElementById('image-container');
+
+		function upload() {
+			const fileUploadInput = document.querySelector('.file-uploader');
+			const image = fileUploadInput.files[0];
+			if(!image) return;
+
+			if (!image.type.includes('image')) {
+				return alert('Only images are allowed!');
+			}
+			if (image.size > 10_000_000) {
+				return alert('Maximum upload size is 10MB!');
+			}
+
+			const fileReader = new FileReader();
+			fileReader.readAsDataURL(image);
+
+			fileReader.onload = (fileReaderEvent) => {
+				const imagePicture = document.querySelector('.image-picture');
+				imagePicture.style.backgroundImage = `url(${fileReaderEvent.target.result})`;
+				currentImage = fileReaderEvent.target.result;
+			};
+		}
+
+		function setShape(shape) {
+			const imageContainer = document.getElementById('image-container');
+
+			switch(shape){
+				case 'circle':
+				imageContainer.style.clipPath = 'circle(50% at 50% 50%)';
+				imageContainer.style.borderRadius = '50%';
+					break;
+				case 'triangle':
+				imageContainer.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+					imageContainer.style.borderRadius = '0';
+					break;
+				case 'square':
+					imageContainer.style.clipPath = 'none';
+					imageContainer.style.borderRadius = '0';
+					break;
+
+				case 'hexagon':
+					imageContainer.style.clipPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+					imageContainer.style.borderRadius = '0';
+					break;
+
+				default:
+					imageContainer.style.clipPath = 'none';
+					imageContainer.style.borderRadius = '0';
+					break;
+			}
+		}
+
+		function downloadImage() {
+			if(!currentImage) {
+				alert('Please upload an image!');
+				return;
+			}
+			// create a canvas
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d');
+
+			canvas.width = container.offsetWidth;
+			canvas.height = container.offsetHeight;
+
+			//upload image onto the canvas
+			const img = new Image();
+			img.src = currentImage;
+
+			img.onload = () => {
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+				// apply clip path by making the canvas
+				const clipPath = getComputedStyle(container).clipPath;
+				if(clipPath && clipPath !== 'none'){
+					const shape = clipPath.match(/polygon\((.+)\)/);
+					if(shape){
+						const points = shape[1].split(',').map((point) => {
+							const [x, y] = point.trim().split(' ');
+							return [parseFloat(x) * canvas.width, parseFloat(y) * canvas.height];
+						});
+					ctx.save();
+				ctx.beginPath();
+				points.forEach(([x, y], index) => {
+					if (index === 0) {
+						ctx.moveTo(x, y);
+					} else {
+						ctx.lineTo(x, y);
+					}
+				});
+				ctx.closePath();
+				ctx.clip();
+				ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear outside the shape
+				ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Redraw the image
+				ctx.restore();
+			}
+		}
+				//download link
+				const link = document.createElement('a');
+				link.download = 'transformed-image.png';
+				link.href = canvas.toDataURL('image/png');
+				link.click();
+			};
+		}
+	</script>
+</body>
+</html>
